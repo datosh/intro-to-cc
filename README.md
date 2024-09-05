@@ -5,7 +5,7 @@
 This is the accompanying repository for the talk and contains all the code
 and resources used in the presentation.
 
-### Configuration
+## Configuration
 
 Create a file called `.env` in the root of the repository and add the following
 variables:
@@ -18,10 +18,7 @@ ZONE=<your-zone>
 
 ### Login to GCP
 
-```bash
-gcloud auth login
-gcloud auth application-default login
-```
+Login to GCP so we can explore the resources and allow Terraform to run.
 
 ```bash
 ./configure.sh
@@ -31,9 +28,14 @@ gcloud auth application-default login
 
 https://cloud.google.com/confidential-computing/confidential-vm/docs/supported-configurations#supported-os
 
-```bash
-› gcloud compute images list \
-    --filter="guestOsFeatures[].type:(SEV_SNP_CAPABLE)"
+```sh
+gcloud compute images list \
+        --filter="guestOsFeatures[].type:(SEV_SNP_CAPABLE)"
+```
+
+<details>
+    <summary><i>Example Output</i></summary>
+    <pre>
 NAME                                       PROJECT              FAMILY                         DEPRECATED  STATUS
 centos-stream-9-v20240815                  centos-cloud         centos-stream-9                            READY
 cos-101-17162-528-16                       cos-cloud            cos-101-lts                                READY
@@ -74,9 +76,29 @@ fedora-coreos-40-20240825-1-0-gcp-aarch64  fedora-coreos-cloud  fedora-coreos-ne
 fedora-coreos-40-20240825-1-0-gcp-x86-64   fedora-coreos-cloud  fedora-coreos-next                         READY
 fedora-coreos-40-20240825-2-0-gcp-aarch64  fedora-coreos-cloud  fedora-coreos-testing-arm64                READY
 fedora-coreos-40-20240825-2-0-gcp-x86-64   fedora-coreos-cloud  fedora-coreos-testing                      READY
+    </pre>
+</details>
+
+## Create a Confidential VM
+
+```bash
+terraform init
+terraform apply
+echo "http://$(terraform output -raw public_ip)"
+ssh datosh@$(terraform output -raw public_ip)
 ```
 
+### Verify Google used SEV SNP machine
+
+```bash
+gcloud compute instances describe cvm --zone=europe-west4-a --format="yaml(confidentialInstanceConfig)"
+```
+
+## Troubleshooting
+
 ### No resources available
+
+SNP enabled machines are not available in all zones, in addition a few zones only have a limited number of machines available. This is an example where a region (europe-west3) does not have enough resources available to create a CVM.
 
 ```bash
 google_compute_instance.default: Still creating... [10s elapsed]
@@ -96,61 +118,4 @@ google_compute_instance.default: Still creating... [10s elapsed]
 │    6: resource "google_compute_instance" "default" {
 │
 ╵
-```
-
-### Verify
-
-```bash
-gcloud compute instances describe cvm --zone=europe-west4-a --format="yaml(confidentialInstanceConfig)"
-```
-
-How to actually verify the attestation report?
-https://www.amd.com/content/dam/amd/en/documents/developer/lss-snp-attestation.pdf
-
-Read: https://arxiv.org/html/2406.01186v1
-Encrypted disk: https://www.youtube.com/watch?v=4wZnl0njxm8
-
-https://github.com/virtee/sev-snp-measure
-
-Which parts can we verify?
-
-#### VM launched is a genuine AMD SEV-SNP machine.
-
-We verify this via the certificate chain.
-
-#### VM was launched on a system with a specific set of updated vendor software
-
-TCB components
-• Security processor boot loader
-• Security processor operating system
-• SEV-SNP firmware
-• x86 Microcode
-
-These components are covered by the Secure Version Number (SVN).
-
-We have three different kinds: Committed <= Reported <= Current
-
-This helps cloud providers to roll out new versions of TCB, while providing
-compatibility.
-
-Committed version has rollback protection, i.e., we can be sure we get at least
-this version.
-
-#### VM was launched with the expected guest software
-
-Build measurements locally: https://github.com/virtee/sevctl?tab=readme-ov-file#measurement-build
-
-
-### Connect
-
-```bash
-ssh datosh@$(terraform output -raw public_ip)
-```
-
-### Build and Push
-
-```bash
-CGO_ENABLED=0 go build -o gcp-snp ./cmd/gcp-snp
-scp gcp-snp datosh@$(terraform output -raw public_ip):gcp-snp
-ssh datosh@$(terraform output -raw public_ip)
 ```

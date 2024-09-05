@@ -8,7 +8,7 @@ terraform {
 }
 
 provider "google" {
-  project     = "kammel-dev"
+  project     = "fka-conference-demo"
   region      = "europe-west4"
   zone        = "europe-west4-a"
 }

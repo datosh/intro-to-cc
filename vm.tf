@@ -3,6 +3,24 @@ resource "google_service_account" "default" {
   display_name = "Custom SA for VM Instance"
 }
 
+resource "google_compute_network" "vpc_network" {
+  name                    = "default"
+  auto_create_subnetworks = true
+  mtu                     = 1460
+}
+
+resource "google_compute_firewall" "default" {
+  name    = "allow-ssh"
+  network = google_compute_network.vpc_network.name
+
+  allow {
+    protocol = "tcp"
+    ports    = ["22", "80"]
+  }
+
+  source_ranges = ["0.0.0.0/0"]
+}
+
 resource "google_compute_instance" "default" {
   name         = "cvm"
   # Must be N2D machine to support AMD SEV-SNP
@@ -39,7 +57,7 @@ resource "google_compute_instance" "default" {
   }
 
   network_interface {
-    network = "default"
+    network = google_compute_network.vpc_network.name
 
     access_config {
       // Ephemeral public IP
@@ -50,7 +68,7 @@ resource "google_compute_instance" "default" {
     ssh-keys = join("\n", [for key in var.ssh_keys : "${key.user}:${key.key}"])
   }
 
-  metadata_startup_script = "echo hi > /test.txt"
+  metadata_startup_script = file("startup.sh")
 
   service_account {
     # Google recommends custom service accounts that have cloud-platform scope and permissions granted via IAM Roles.
