@@ -104,6 +104,43 @@ google_compute_instance.default: Still creating... [10s elapsed]
 gcloud compute instances describe cvm --zone=europe-west4-a --format="yaml(confidentialInstanceConfig)"
 ```
 
+How to actually verify the attestation report?
+https://www.amd.com/content/dam/amd/en/documents/developer/lss-snp-attestation.pdf
+
+Read: https://arxiv.org/html/2406.01186v1
+Encrypted disk: https://www.youtube.com/watch?v=4wZnl0njxm8
+
+https://github.com/virtee/sev-snp-measure
+
+Which parts can we verify?
+
+#### VM launched is a genuine AMD SEV-SNP machine.
+
+We verify this via the certificate chain.
+
+#### VM was launched on a system with a specific set of updated vendor software
+
+TCB components
+• Security processor boot loader
+• Security processor operating system
+• SEV-SNP firmware
+• x86 Microcode
+
+These components are covered by the Secure Version Number (SVN).
+
+We have three different kinds: Committed <= Reported <= Current
+
+This helps cloud providers to roll out new versions of TCB, while providing
+compatibility.
+
+Committed version has rollback protection, i.e., we can be sure we get at least
+this version.
+
+#### VM was launched with the expected guest software
+
+Build measurements locally: https://github.com/virtee/sevctl?tab=readme-ov-file#measurement-build
+
+
 ### Connect
 
 ```bash

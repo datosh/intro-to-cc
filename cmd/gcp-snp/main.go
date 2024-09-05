@@ -32,11 +32,25 @@ func main() {
 		log.Fatal(err)
 	}
 
+	log.Printf("ChipIP: %x\n", report.ChipId)
+	log.Printf("VMPL: %d\n", report.Vmpl)
+
+	log.Printf(
+		"Commited TCB: %d.%d.%d\n",
+		report.CommittedMajor, report.CommittedMinor, report.CommittedBuild,
+	)
+
+	log.Printf("Measurement: %x\n", report.Measurement)
+
 	verifyReport(report, certChain, nonce)
 }
 
-func generateReport(dev *client.LinuxDevice, nonce [64]byte) ([]byte, []byte, error) {
-	report, certChain, err := client.GetRawExtendedReport(dev, nonce)
+func generateReport(dev *client.LinuxDevice, nonce [64]byte) (*sevsnp.Report, []byte, error) {
+	rawReport, certChain, err := client.GetRawExtendedReport(dev, nonce)
+	if err != nil {
+		log.Fatal(err)
+	}
+	report, err := abi.ReportToProto(rawReport)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -44,12 +58,7 @@ func generateReport(dev *client.LinuxDevice, nonce [64]byte) ([]byte, []byte, er
 }
 
 // verifyReport based on ARK -> ASK -> VCEK -> report
-func verifyReport(rawReport, certChain []byte, nonce [64]byte) {
-	report, err := abi.ReportToProto(rawReport)
-	if err != nil {
-		log.Fatal(err)
-	}
-
+func verifyReport(report *sevsnp.Report, certChain []byte, nonce [64]byte) {
 	vcek, err := getVCEKFromCertChain(certChain)
 	if err != nil {
 		log.Fatal(err)
