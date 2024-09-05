@@ -43,14 +43,14 @@ func generateReport(dev *client.LinuxDevice, nonce [64]byte) ([]byte, []byte, er
 	return report, certChain, nil
 }
 
-// verifyReport based on ARK -> ASK -> VLEK -> report
+// verifyReport based on ARK -> ASK -> VCEK -> report
 func verifyReport(rawReport, certChain []byte, nonce [64]byte) {
 	report, err := abi.ReportToProto(rawReport)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	vlek, err := getVLEKFromCertChain(certChain)
+	vcek, err := getVCEKFromCertChain(certChain)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -60,7 +60,7 @@ func verifyReport(rawReport, certChain []byte, nonce [64]byte) {
 		log.Fatal(err)
 	}
 
-	err = verifyCertChain(ask, ark, vlek, report)
+	err = verifyCertChain(ask, ark, vcek, report)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -87,39 +87,39 @@ func checkNonce(nonce [64]byte, report *sevsnp.Report) error {
 	return nil
 }
 
-func verifyCertChain(ask, ark, vlek *x509.Certificate, report *sevsnp.Report) error {
+func verifyCertChain(ask, ark, vcek *x509.Certificate, report *sevsnp.Report) error {
 	if err := ask.CheckSignatureFrom(ark); err != nil {
 		return fmt.Errorf("verifying ARK -> ASK: %w", err)
 	}
-	if err := vlek.CheckSignatureFrom(ask); err != nil {
-		return fmt.Errorf("verifying ASK -> VLEK: %w", err)
+	if err := vcek.CheckSignatureFrom(ask); err != nil {
+		return fmt.Errorf("verifying ASK -> VCEK: %w", err)
 	}
-	if err := verify.SnpProtoReportSignature(report, vlek); err != nil {
-		return fmt.Errorf("verifying VLEK -> report: %w", err)
+	if err := verify.SnpProtoReportSignature(report, vcek); err != nil {
+		return fmt.Errorf("verifying VCEK -> report: %w", err)
 	}
 
 	return nil
 }
 
-func getVLEKFromCertChain(certChain []byte) (*x509.Certificate, error) {
+func getVCEKFromCertChain(certChain []byte) (*x509.Certificate, error) {
 	certs := new(abi.CertTable)
 	if err := certs.Unmarshal(certChain); err != nil {
 		return nil, fmt.Errorf("unmarshaling cert chain: %w", err)
 	}
-	vlekCertRaw, err := certs.GetByGUIDString(abi.VlekGUID)
+	vcekCertRaw, err := certs.GetByGUIDString(abi.VcekGUID)
 	if err != nil {
-		return nil, fmt.Errorf("retrieving VLEK: %w", err)
+		return nil, fmt.Errorf("retrieving VCEK: %w", err)
 	}
-	vlek, err := x509.ParseCertificate(vlekCertRaw)
+	vcek, err := x509.ParseCertificate(vcekCertRaw)
 	if err != nil {
-		return nil, fmt.Errorf("parsing VLEK: %w", err)
+		return nil, fmt.Errorf("parsing VCEK: %w", err)
 	}
 
-	return vlek, nil
+	return vcek, nil
 }
 
 func downloadAskArk() (*x509.Certificate, *x509.Certificate, error) {
-	resp, err := http.Get("https://kdsintf.amd.com/vlek/v1/Milan/cert_chain")
+	resp, err := http.Get("https://kdsintf.amd.com/vcek/v1/Milan/cert_chain")
 	if err != nil {
 		return nil, nil, fmt.Errorf("downloading cert chain: %w", err)
 	}
