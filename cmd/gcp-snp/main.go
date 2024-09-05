@@ -79,7 +79,7 @@ func verifyReport(report *sevsnp.Report, certChain []byte, nonce [64]byte) {
 		log.Fatal(err)
 	}
 
-	log.Println("SUCCESS!")
+	log.Println("Attestation Report Verified!")
 }
 
 func checkNonce(nonce [64]byte, report *sevsnp.Report) error {

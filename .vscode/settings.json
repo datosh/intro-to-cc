@@ -1,0 +1,5 @@
+{
+    // Force build tag, otherwise LinuxDevice in sev-guest will not
+    // be built.
+    "go.buildTags": "linux",
+}
